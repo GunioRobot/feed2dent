@@ -1,5 +1,6 @@
 [general]
 feed_url: http://www.archlinux.org/feeds/news/
+dat_path: feed.dat
 
 [identica]
 apiurl: http://identi.ca/api/statuses/update.json
