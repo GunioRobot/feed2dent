@@ -1,0 +1,165 @@
+#!/usr/bin/env python
+"""
+rss2dent is an RSS to identi.ca agent. It pulls feeds from a feed url, and 
+posts the result to identi.ca. The link to the original feed article is
+converted to a 'short url', and the title is chopped at 140 characters.
+----
+usage: %prog [options]
+ --no-dent  : Fetch RSS but do not post results to identi.ca. Useful when 
+              you want to only update the feed data file.
+ -h, --help : Print help
+ --version  : Print version
+"""
+
+import os
+import sys
+import pickle
+import logging
+import feedparser
+import botlibs
+from botlibs import Storage
+from ConfigParser import RawConfigParser
+from optparse import OptionParser, OptionGroup
+
+VERSION = '0.1'
+LOG_LEVELS = (logging.WARNING, logging.INFO, logging.DEBUG)
+
+## load config vars
+cfgp = RawConfigParser()
+cfgp.read('config.ini')
+config = Storage()
+for section in cfgp.sections():
+    config[section] = Storage()
+    for left,right in cfgp.items(section):
+        config[section][left] = right
+
+###
+### Start control logic
+def mksimple_dent(text, nodent=False):
+    """perform a simple text to dent"""
+    if nodent == True:
+        logger.debug('no-dent set. not sending...')
+    else:
+        botlibs.mkdent(config.identica, text)
+    return
+
+def main(nodent=False):
+    """Main entry point for rss2dent"""
+    logger = logging.getLogger('main')
+    if os.path.isfile(config.general.dat_path):
+        try:
+            logger.debug('feed.dat found. trying to read.. %s', 
+                         config.general.dat_path)
+            f = open(config.general.dat_path, 'rb')
+            odata = pickle.load(f)
+            f.close()
+            logger.debug('feed.dat loaded')
+        except:
+            logger.error('could not read feed.dat, even though it exists.')
+            logger.exception('exception:')
+            sys.exit(1)
+    else:
+        logger.debug('no feed.dat found at %s.', config.general.dat_path)
+        odata = None
+
+    # get rss feed
+    try:
+        logger.debug('fetching feed url')
+        if odata:
+            logger.debug('conditional fetch: modified date')
+            fdata = botlibs.timeout(10, feedparser.parse, 
+                                    config.general.feed_url, 
+                                    modified=odata.modified)
+        else:
+            fdata = botlibs.timeout(10, feedparser.parse, 
+                                    config.general.feed_url)
+    except botlibs.TimeoutError:
+        logger.critical('timed out reading feed. giving up')
+        sys.exit(1)
+
+    if not fdata:
+        logger.critical('feed was empty!')
+        sys.exit(1)
+    else:
+        logger.debug('feed retrieved')
+
+    if fdata.status == 304:
+        logger.info('no new feed data since last fetch')
+        # no sense overriting the file, since we know it isn't new yet
+        # preserves last-mod-timestamp
+        return
+    elif nodent == True:
+        logger.debug('no-dent set. not sending...')
+    else:
+        posts_made = 0
+        entries = fdata.entries
+        entries.reverse()
+        # look for new feed items
+        for entry in entries:
+            match = False
+            if odata:
+                for oldentry in odata.entries:
+                    if entry.id == oldentry.id:
+                        match = True
+            if match == False:
+                # new entry. do dent
+                text = '%s %s' % (
+                    botlibs.tighturlify(config.tighturl,entry.link), 
+                    entry.title)
+                # mkdent
+                botlibs.mkdent(config.identica, text)
+                posts_made += 1
+        if posts_made > 0:
+            logger.info('posted %d dents')
+        else:
+            logger.info('no new feed data')
+
+    # save feed data
+    try:
+        logging.debug('saving feed.dat to %s', config.general.dat_path)
+        f = open(config.general.dat_path, 'wb')
+        pickle.dump(fdata, f)
+        f.close()
+        logging.debug('feed.dat saved')
+    except:
+        logger.critical('could not save feed.dat.')
+        logger.exception('exception: ')
+
+
+if __name__ == '__main__':
+    parser = OptionParser()
+    parser.set_usage("usage: %prog [options] [arg1]")
+    parser.version = "%%prog %s" % VERSION
+    parser.add_option("--no-dent", action="store_true", dest="nodent",
+        help="Fetch RSS but do post a dent.")
+    parser.add_option("-v", action="count", dest="verbosity",
+        help="Set verbose logging. Additional instances increase verbosity.")
+    group = OptionGroup(parser, 'No feed parsing options', 
+        'Use of these options are standalone, and disable all feed fetching '
+        'and parsing.')
+    group.add_option("-s", "--simple", action="store_true", dest="simple",
+        help='Make a simple dent post using arg1 as the text. No feeds used.')
+    parser.add_option_group(group)
+    parser.set_defaults(nodent=False, verbosity=0, simple=False)
+    (options, args) = parser.parse_args()
+
+    # configure logging
+    if options.verbosity > len(LOG_LEVELS) - 1:
+        options.verbosity = len(LOG_LEVELS) - 1
+    logging.basicConfig(
+        format="%(asctime)s : %(levelname)-8s %(message)s",
+        datefmt='%Y-%m-%d %H:%M',
+        level=LOG_LEVELS[options.verbosity])
+    logger = logging.getLogger()
+    if options.simple:
+        text = ' '.join(args).strip()
+        if len(text) > 0:
+            logger.debug('processing simple dent: "%s"', text)
+            mksimple_dent(text, nodent=options.nodent)
+        else:
+            logger.critical('No content to post. Doing nothing.')
+    else:
+        logger.debug('starting main')
+        main(nodent=options.nodent)
+    logger.debug('done!')
+

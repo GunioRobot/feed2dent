@@ -1,0 +1,11 @@
+[general]
+feed_url: http://www.archlinux.org/feeds/news/
+
+[identica]
+apiurl: http://identi.ca/api/statuses/update.json
+user:   username_here
+passwd: password_here
+
+[tighturl]
+apiurl: http://2tu.us/?save=y&url=
+

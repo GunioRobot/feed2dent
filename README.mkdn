@@ -1,0 +1,55 @@
+# feed2dent: A command line (rss/atom) to identi.ca post utility.
+
+## Description
+rss2dent is an (RSS/ATOM) feed to identi.ca agent. It pulls feeds from a feed
+url, and posts the result to identi.ca. The link to the original feed article
+is converted to a 'short url', and the title is chopped at 140 characters.
+
+## Dependencies
+* python
+* python-lxml
+* python-feedparser
+
+if python-version < 2.6:
+
+* python-simplejson
+
+Note: python-2.6 includes the 'json' module, which works fine. You only need
+simplejson if you are using 2.5 or earlier.
+
+## Installation
+0. Install dependencies
+        easy_install lxml
+        easy_install feedparser
+        # if python 2.5 or earlier
+        easy_install simplejson
+1. Checkout the code
+2. Copy config.ini.default to config.ini, and edit as needed.
+   Notably, edit the 'user' and 'passwd' stanzas in the [identica] section.
+3. Ensure the directory is writable by the user your run it as (so that the dat
+   file can be saved).
+
+## Example Usage
+
+The following runs with debug info output, but does not post to identica.
+Useful for debugging issues.
+
+    ./feed2dent -vv --no-dent
+
+The following posts a simple string to identica. It does not parse feeds.
+Useful for sending a quick identica post from the command line.
+
+    ./feed2dent -s just a test
+
+The follwing does nothing but output some logging.
+
+    ./feed2dent -vv --no-dent -s this does nothing :D
+
+The following simply outputs the help.
+
+    ./feed2dent --help
+
+## License
+
+See LICENSE file.
+
