@@ -1,7 +1,7 @@
 # feed2dent: A command line (rss/atom) to identi.ca post utility.
 
 ## Description
-rss2dent is an (RSS/ATOM) feed to identi.ca agent. It pulls feeds from a feed
+feed2dent is an (RSS/ATOM) feed to identi.ca agent. It pulls feeds from a feed
 url, and posts the result to identi.ca. The link to the original feed article
 is converted to a 'short url', and the title is chopped at 140 characters.
 
