@@ -17,33 +17,73 @@ import pickle
 import logging
 import feedparser
 import botlibs
-from botlibs import Storage
+from botlibs import Storage, cmdln
 from ConfigParser import RawConfigParser
 from optparse import OptionParser, OptionGroup
 
-VERSION = '0.1'
 LOG_LEVELS = (logging.WARNING, logging.INFO, logging.DEBUG)
 
-## load config vars
-cfgp = RawConfigParser()
-cfgp.read('config.ini')
-config = Storage()
-for section in cfgp.sections():
-    config[section] = Storage()
-    for left,right in cfgp.items(section):
-        config[section][left] = right
+class CommandParser(cmdln.Cmdln):
+    name = "feed2dent"
+    version = "0.1"
+
+    def get_optparser(self):
+        parser = cmdln.Cmdln.get_optparser(self)
+        parser.add_option("-v", action="count", dest="verbosity", default=0,
+            help="Set verbose logging. Additional instances add verbosity.")
+        return parser
+
+    def do_version(self, subcmd, opts):
+        """print version"""
+        print "%s %s" % (self.name, self.version)
+
+    def precmd(self, arg):
+        if self.options.verbosity > len(LOG_LEVELS) - 1:
+            verbosity = len(LOG_LEVELS) - 1
+        else:
+            verbosity = self.options.verbosity
+        logging.basicConfig(
+            format="%(asctime)s : %(levelname)-8s %(message)s",
+            datefmt='%Y-%m-%d %H:%M',
+            level=LOG_LEVELS[verbosity])
+        self.logger = logging.getLogger('cmdparser')
+        return arg
+
+    @cmdln.option("--no-dent", action="store_true", dest="nodent",
+        help="Fetch RSS but do post a dent.")
+    def do_dent(self, subcmd, opts, *content):
+        """Send the specified text directly to identi.ca, as a simple dent.
+
+        usage: 
+            dent CONTENT...
+
+        ${cmd_option_list}
+        """
+        text = ' '.join(content).strip()
+        if len(text) < 1:
+            self.logger.critical('No content to post. Doing nothing.')
+            return 1
+        self.logger.debug('processing simple dent: "%s"', text)
+        if nodent == True:
+            logger.debug('no-dent set. not sending...')
+        else:
+            botlibs.mkdent(config.identica, text)
+
+    @cmdln.option("--no-dent", action="store_true", dest="nodent",
+        help="Fetch RSS but do post a dent.")
+    def do_feed(self, subcmd, opts, feedname):
+        """parse FEEDNAME feed and post to identi.ca
+
+        ${cmd_usage}
+        ${cmd_option_list}
+        """
+        print opts.nodent
+        #feedit(nodent=opts.nodent)
+
 
 ###
 ### Start control logic
-def mksimple_dent(text, nodent=False):
-    """perform a simple text to dent"""
-    if nodent == True:
-        logger.debug('no-dent set. not sending...')
-    else:
-        botlibs.mkdent(config.identica, text)
-    return
-
-def main(nodent=False):
+def feedit(nodent=False):
     """Main entry point for rss2dent"""
     logger = logging.getLogger('main')
     if os.path.isfile(config.general.dat_path):
@@ -126,40 +166,17 @@ def main(nodent=False):
         logger.exception('exception: ')
 
 
-if __name__ == '__main__':
-    parser = OptionParser()
-    parser.set_usage("usage: %prog [options] [arg1]")
-    parser.version = "%%prog %s" % VERSION
-    parser.add_option("--no-dent", action="store_true", dest="nodent",
-        help="Fetch RSS but do post a dent.")
-    parser.add_option("-v", action="count", dest="verbosity",
-        help="Set verbose logging. Additional instances increase verbosity.")
-    group = OptionGroup(parser, 'No feed parsing options', 
-        'Use of these options are standalone, and disable all feed fetching '
-        'and parsing.')
-    group.add_option("-s", "--simple", action="store_true", dest="simple",
-        help='Make a simple dent post using arg1 as the text. No feeds used.')
-    parser.add_option_group(group)
-    parser.set_defaults(nodent=False, verbosity=0, simple=False)
-    (options, args) = parser.parse_args()
+## load config vars
+cfgp = RawConfigParser()
+cfgp.read('config.ini')
+config = Storage()
+for section in cfgp.sections():
+    config[section] = Storage()
+    for left,right in cfgp.items(section):
+        config[section][left] = right
 
-    # configure logging
-    if options.verbosity > len(LOG_LEVELS) - 1:
-        options.verbosity = len(LOG_LEVELS) - 1
-    logging.basicConfig(
-        format="%(asctime)s : %(levelname)-8s %(message)s",
-        datefmt='%Y-%m-%d %H:%M',
-        level=LOG_LEVELS[options.verbosity])
-    logger = logging.getLogger()
-    if options.simple:
-        text = ' '.join(args).strip()
-        if len(text) > 0:
-            logger.debug('processing simple dent: "%s"', text)
-            mksimple_dent(text, nodent=options.nodent)
-        else:
-            logger.critical('No content to post. Doing nothing.')
-    else:
-        logger.debug('starting main')
-        main(nodent=options.nodent)
-    logger.debug('done!')
+if __name__ == '__main__':
+    feed2dent = CommandParser()
+    ret = feed2dent.main()
+    sys.exit(ret)
 
