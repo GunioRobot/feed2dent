@@ -6,22 +6,22 @@ url, and posts the result to identi.ca. The link to the original feed article
 is converted to a 'short url', and the title is chopped at 140 characters.
 
 ## Dependencies
-* python
+* python >= 2.5
 * python-lxml
 * python-feedparser
 
-if python-version < 2.6:
+if python-version == 2.5:
 
 * python-simplejson
 
 Note: python-2.6 includes the 'json' module, which works fine. You only need
-simplejson if you are using 2.5 or earlier.
+simplejson if you are using python-2.5.
 
 ## Installation
 0. Install dependencies
         easy_install lxml
         easy_install feedparser
-        # if python 2.5 or earlier
+        # if python-version == 2.5
         easy_install simplejson
 1. Checkout the code
 2. Copy config.ini.default to config.ini, and edit as needed.
