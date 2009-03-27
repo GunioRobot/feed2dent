@@ -33,10 +33,6 @@ class CommandParser(cmdln.Cmdln):
             help="Set verbose logging. Additional instances add verbosity.")
         return parser
 
-    def do_version(self, subcmd, opts):
-        """print version"""
-        print "%s %s" % (self.name, self.version)
-
     def precmd(self, arg):
         if self.options.verbosity > len(LOG_LEVELS) - 1:
             verbosity = len(LOG_LEVELS) - 1
@@ -50,7 +46,7 @@ class CommandParser(cmdln.Cmdln):
         return arg
 
     @cmdln.option("--no-dent", action="store_true", dest="nodent",
-        help="Fetch RSS but do post a dent.")
+        default=False, help="Fetch RSS but do post a dent.")
     def do_dent(self, subcmd, opts, *content):
         """Send the specified text directly to identi.ca, as a simple dent.
 
@@ -69,20 +65,26 @@ class CommandParser(cmdln.Cmdln):
         else:
             identica.dent(config.identica, text)
 
-    @cmdln.option("--no-dent", action="store_true", dest="nodent",
-        help="Fetch RSS but do post a dent.")
-    def do_feed(self, subcmd, opts, feedname):
-        """parse FEEDNAME feed and post to identi.ca
+    @cmdln.option("-f", "--fetch-only", action="store_true", dest="nodent",
+        default=False, help="Fetch feeds but do post a dent.")
+    def do_feed(self, subcmd, opts, *feedname):
+        """parse FEEDNAME(s) feed and post to identi.ca
 
         ${cmd_usage}
+        If no FEEDNAME(s) provided, run for all feeds.
+
         ${cmd_option_list}
         """
-        feedit(nodent=opts.nodent)
+        if len(feedname) > 0:
+            for x in feedname:
+                feedit(feed=x, nodent=opts.nodent)
+        else:
+            feedit(nodent=opts.nodent)
 
 
 ###
 ### Start control logic
-def feedit(nodent=False):
+def feedit(feed=None, nodent=False):
     """Main entry point for rss2dent"""
     logger = logging.getLogger('main')
     if os.path.isfile(config.general.dat_path):
