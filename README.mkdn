@@ -31,23 +31,28 @@ simplejson if you are using 2.5 or earlier.
 
 ## Example Usage
 
-The following runs with debug info output, but does not post to identica.
-Useful for debugging issues.
+The following fetches the feed, saves state, and posts any new items to
+identica.
 
-    ./feed2dent -vv --no-dent
+    ./feed2dent feed 
+
+The following runs with debug info output, fetches the feed, saves state, 
+but does not post to identica.  Useful for debugging issues.
+
+    ./feed2dent -vv feed -f
 
 The following posts a simple string to identica. It does not parse feeds.
 Useful for sending a quick identica post from the command line.
 
-    ./feed2dent -s just a test
+    ./feed2dent dent just a test
 
 The follwing does nothing but output some logging.
 
-    ./feed2dent -vv --no-dent -s this does nothing :D
+    ./feed2dent -vv dent -f this does nothing :D
 
-The following simply outputs the help.
+The following simply outputs the help for the _dent_ command.
 
-    ./feed2dent --help
+    ./feed2dent help dent
 
 ## License
 
