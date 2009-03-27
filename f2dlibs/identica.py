@@ -3,7 +3,7 @@ identica module
 
 this module contains the following methods:
 
-mkdent      -- Method to post data to identica.
+dent      -- Method to post data to identica.
 """
 
 ###
@@ -16,9 +16,9 @@ from . import json
 
 ###
 ### method defs
-def mkdent(config, data):
+def dent(config, data):
     """post text to identi.ca"""
-    logger = logging.getLogger('botlibs.identica.mkdent')
+    logger = logging.getLogger('botlibs.identica.dent')
     ## make sure to chop data
     if len(data) > 136:
         logger.info('dent was too long. copping')
