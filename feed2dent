@@ -60,7 +60,7 @@ class CommandParser(cmdln.Cmdln):
             self.logger.critical('No content to post. Doing nothing.')
             return 1
         self.logger.debug('processing simple dent: "%s"', text)
-        if nodent == True:
+        if opts.nodent == True:
             logger.debug('no-dent set. not sending...')
         else:
             identica.dent(config.identica, text)
