@@ -45,8 +45,8 @@ class CommandParser(cmdln.Cmdln):
         self.logger = logging.getLogger('cmdparser')
         return arg
 
-    @cmdln.option("--no-dent", action="store_true", dest="nodent",
-        default=False, help="Fetch RSS but do post a dent.")
+    @cmdln.option("-f", "--fetch-only", action="store_true", dest="nodent",
+        default=False, help="Fetch feeds but do post a dent.")
     def do_dent(self, subcmd, opts, *content):
         """Send the specified text directly to identi.ca, as a simple dent.
 
