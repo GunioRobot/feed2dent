@@ -3,12 +3,6 @@
 rss2dent is an RSS to identi.ca agent. It pulls feeds from a feed url, and 
 posts the result to identi.ca. The link to the original feed article is
 converted to a 'short url', and the title is chopped at 140 characters.
-----
-usage: %prog [options]
- --no-dent  : Fetch RSS but do not post results to identi.ca. Useful when 
-              you want to only update the feed data file.
- -h, --help : Print help
- --version  : Print version
 """
 
 import os
@@ -23,6 +17,8 @@ from optparse import OptionParser, OptionGroup
 
 LOG_LEVELS = (logging.WARNING, logging.INFO, logging.DEBUG)
 
+###
+### class defs
 class CommandParser(cmdln.Cmdln):
     name = "feed2dent"
     version = "0.1"
@@ -65,6 +61,18 @@ class CommandParser(cmdln.Cmdln):
         else:
             identica.dent(config.identica, text)
 
+    def do_list(self, subcmd, opts):
+        """list feeds from the config file
+
+        ${cmd_usage}
+        ${cmd_option_list}
+        """
+        counter = 0
+        for x in config.feeds:
+            counter += 1
+            print '[%2d] name: %s' % (counter, x)
+            print '     url:  %s' % config.feeds[x]
+
     @cmdln.option("-f", "--fetch-only", action="store_true", dest="nodent",
         default=False, help="Fetch feeds but do post a dent.")
     def do_feed(self, subcmd, opts, *feedname):
@@ -75,71 +83,87 @@ class CommandParser(cmdln.Cmdln):
 
         ${cmd_option_list}
         """
+        fc = loadfc()
         if len(feedname) > 0:
             for x in feedname:
-                feedit(feed=x, nodent=opts.nodent)
+                if x not in config.feeds.keys():
+                    print 'feed name "%s" not in config.' % x
+                else:
+                    feedit(feed=x, nodent=opts.nodent)
         else:
-            feedit(nodent=opts.nodent)
+            # remove feeds no longer in config
+            for x in fc.feeds.keys():
+                if x not in config.feeds.keys():
+                    logger.info('feed "%s" no longer in config. deleting.', x)
+                    del fc.feeds[x]
+            # operate on feeds
+            for x in config.feeds.keys():
+                fc.feeds[x] = feedit(x, fc.feeds[x], nodent=opts.nodent)
+            fc.save()
 
 
 ###
-### Start control logic
-def feedit(feed=None, nodent=False):
-    """Main entry point for rss2dent"""
-    logger = logging.getLogger('main')
+### helper function defs
+def loadfc():
     if os.path.isfile(config.general.dat_path):
         try:
             logger.debug('feed.dat found. trying to read.. %s', 
                          config.general.dat_path)
-            f = open(config.general.dat_path, 'rb')
-            odata = pickle.load(f)
-            f.close()
+            fc = FeedContainer(config.general.dat_file)
+            fc.load()
             logger.debug('feed.dat loaded')
+            return fc
         except:
             logger.error('could not read feed.dat, even though it exists.')
             logger.exception('exception:')
             sys.exit(1)
     else:
         logger.debug('no feed.dat found at %s.', config.general.dat_path)
-        odata = None
+        sys.exit(1)
 
+def feedit(feedname, fobj=None, nodent=False):
+    """Main entry point for rss2dent"""
+    logger = logging.getLogger('main')
     # get rss feed
     try:
         logger.debug('fetching feed url')
-        if odata:
+        if fobj:
             logger.debug('conditional fetch: modified date')
-            fdata = f2dlibs.timeout(10, feedparser.parse, 
-                                    config.general.feed_url, 
-                                    modified=odata.modified)
+            newfobj = f2dlibs.timeout(10, feedparser.parse, 
+                                      config.feeds[feedname], 
+                                      modified=feedobj.modified)
         else:
-            fdata = f2dlibs.timeout(10, feedparser.parse, 
-                                    config.general.feed_url)
+            newfobj = f2dlibs.timeout(10, feedparser.parse, 
+                                      config.feeds[feedname])
     except f2dlibs.TimeoutError:
-        logger.critical('timed out reading feed. giving up')
-        sys.exit(1)
+        logger.critical('timed out reading feed "%s". giving up', feedname)
+        return fobj
 
     if not fdata:
-        logger.critical('feed was empty!')
-        sys.exit(1)
+        logger.critical('feed "%s" was empty!', feedname)
+        return fobj
     else:
         logger.debug('feed retrieved')
 
     if fdata.status == 304:
         logger.info('no new feed data since last fetch')
-        # no sense overriting the file, since we know it isn't new yet
-        # preserves last-mod-timestamp
-        return
-    elif nodent == True:
+        # return old object, preserving older last modified stamp
+        return fobj
+
+    ## start processing feed
+    if nodent == True:
+        # do nothing but return new object.
         logger.debug('no-dent set. not sending...')
+        return newfobj
     else:
         posts_made = 0
-        entries = fdata.entries
+        entries = newfobj.entries
         entries.reverse()
         # look for new feed items
         for entry in entries:
             match = False
-            if odata:
-                for oldentry in odata.entries:
+            if fobj:
+                for oldentry in fobj.entries:
                     if entry.id == oldentry.id:
                         match = True
             if match == False:
@@ -154,20 +178,11 @@ def feedit(feed=None, nodent=False):
             logger.info('posted %d dents')
         else:
             logger.info('no new feed data')
+        # return new obj
+        return newfobj
 
-    # save feed data
-    try:
-        logging.debug('saving feed.dat to %s', config.general.dat_path)
-        f = open(config.general.dat_path, 'wb')
-        pickle.dump(fdata, f)
-        f.close()
-        logging.debug('feed.dat saved')
-    except:
-        logger.critical('could not save feed.dat.')
-        logger.exception('exception: ')
-
-
-## load config vars
+###
+### load config vars
 cfgp = RawConfigParser()
 cfgp.read('config.ini')
 config = Storage()
@@ -176,6 +191,8 @@ for section in cfgp.sections():
     for left,right in cfgp.items(section):
         config[section][left] = right
 
+###
+### main
 if __name__ == '__main__':
     feed2dent = CommandParser()
     ret = feed2dent.main()

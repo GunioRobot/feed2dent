@@ -6,6 +6,7 @@ f2dlibs library
 ### imports
 import sys
 import re
+import pickle
 import urllib
 import urllib2
 import logging
@@ -50,6 +51,20 @@ class Storage(dict):
 
     def __repr__(self):
         return '<Storage ' + dict.__repr__(self) + '>'
+
+class FeedContainer(object):
+    """Container object for feeds."""
+
+    def __init__(self, filename):
+        self.feeds = Storage()
+        self.filename = filename
+
+    def load(self):
+        """Load datfile as a feedcontainer"""
+        self.feeds = pickle.load(open(self.filename, 'rb'))
+
+    def save(self):
+        pickle.dump(self.feeds, open(self.filename, 'wb'))
 
 class NullLoggingHandler(logging.Handler):
     """Null logging handler for logging"""
