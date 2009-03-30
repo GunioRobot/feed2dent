@@ -15,13 +15,13 @@ if python-version < 2.6:
 * python-simplejson
 
 Note: python-2.6 includes the 'json' module, which works fine. You only need
-simplejson if you are using 2.5 or earlier.
+simplejson if you are using python-2.5 or earlier.
 
 ## Installation
 0. Install dependencies
         easy_install lxml
         easy_install feedparser
-        # if python 2.5 or earlier
+        # if python-2.5 or earlier
         easy_install simplejson
 1. Checkout the code
 2. Copy config.ini.default to config.ini, and edit as needed.
