@@ -21,7 +21,7 @@ LOG_LEVELS = (logging.WARNING, logging.INFO, logging.DEBUG)
 ### class defs
 class CommandParser(cmdln.Cmdln):
     name = "feed2dent"
-    version = "0.1"
+    version = "0.2"
 
     def get_optparser(self):
         parser = cmdln.Cmdln.get_optparser(self)
