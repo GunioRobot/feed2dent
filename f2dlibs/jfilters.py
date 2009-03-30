@@ -15,14 +15,15 @@ import urllib
 import urllib2
 import logging
 import lxml
+from jinja2 import Markup
 
 ###
 ### method defs
-def ify(config, url):
+def _tighturlify(apiurl, url):
     """use tighturl to shorten a url and return the shorter version"""
     logger = logging.getLogger('botlibs.tighturl.ify')
     ## prepare the connection requirements
-    request = urllib2.Request('%s%s' % (config.apiurl, url))
+    request = urllib2.Request('%s%s' % (apiurl, url))
     request.add_header('User-agent', 'archbot/1.0')
     logger.debug('performaing tighturl request')
     response = urllib2.urlopen(request)
@@ -38,4 +39,9 @@ def ify(config, url):
         tighturl = None
     logger.debug('got url: "%s"', tighturl)
     return tighturl
+
+def shortenurl(value):
+    safevalue = Markup(value).striptags()
+    shorturl = _tighturlify('http://2tu.us/?save=y&url=', safevalue)
+    return shorturl
 

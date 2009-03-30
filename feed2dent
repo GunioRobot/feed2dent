@@ -11,7 +11,8 @@ import pickle
 import logging
 import feedparser
 import f2dlibs
-from f2dlibs import Storage, cmdln, identica, tighturl, FeedContainer
+from f2dlibs import Storage, cmdln, identica, FeedContainer, jfilters
+from jinja2 import Environment
 from ConfigParser import RawConfigParser
 from optparse import OptionParser, OptionGroup
 
@@ -39,6 +40,8 @@ class CommandParser(cmdln.Cmdln):
             datefmt='%Y-%m-%d %H:%M',
             level=LOG_LEVELS[verbosity])
         self.logger = logging.getLogger('cmdparser')
+        self.jenv = Environment()
+        self.jenv.filters['shortenurl'] = jfilters.shortenurl
         return arg
 
     @cmdln.option("-f", "--fetch-only", action="store_true", dest="nodent",
@@ -174,10 +177,14 @@ def feedit(feedname, fobj=None, nodent=False):
                     if entry.id == oldentry.id:
                         match = True
             if match == False:
+                tplname = '%s_tpl' % feedname
+                if tplname in config.feeds:
+                    tplstring = config.feeds[tplname]
+                else:
+                    tplstring = '{{ url | shortenurl }} {{ title }}'
                 # new entry. do dent
-                text = '%s %s' % (
-                    tighturl.ify(config.tighturl, entry.link), 
-                    entry.title)
+                template = jenv.from_string(tplstring)
+                text = template.render(url=entry.link, title=entry.title)
                 # do dent
                 identica.dent(config.identica, text)
                 posts_made += 1

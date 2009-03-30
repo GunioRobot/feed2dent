@@ -9,6 +9,7 @@ is converted to a 'short url', and the title is chopped at 140 characters.
 * python
 * python-lxml
 * python-feedparser
+* jinja2
 
 if python-version < 2.6:
 
@@ -21,6 +22,7 @@ simplejson if you are using python-2.5 or earlier.
 0. Install dependencies
         easy_install lxml
         easy_install feedparser
+        easy_install jinja2
         # if python-2.5 or earlier
         easy_install simplejson
 1. Checkout the code
@@ -28,6 +30,26 @@ simplejson if you are using python-2.5 or earlier.
    Notably, edit the 'user' and 'passwd' stanzas in the [identica] section.
 3. Ensure the directory is writable by the user your run it as (so that the dat
    file can be saved).
+
+## Template Syntax
+The config.ini file can use templates for posting to identi.ca. The template string convention is as follows.
+
+    [feeds]
+    somename: http://some/feed/url
+    somename_tpl: {{ url | shortenurl }} {{ title }}
+
+Right now, only url and title variables are exported to the template system.
+*shortenurl* is a filter, that accepts a url as input, and performs a
+[tighturl][1] shortening upon it. If you want a longer url, then leave that
+off.
+
+This can be useful if, for instance, you want your posts from one rss to go to a certain identi.ca *group*. In such a case, your template could look like:
+
+    !groupname {{ url | shortenurl }} {{ title }}
+
+If no template string is defined, the default is:
+    
+    {{ url | shortenurl }} {{ title }}
 
 ## Example Usage
 
@@ -58,3 +80,4 @@ The following simply outputs the help for the _dent_ command.
 
 See LICENSE file.
 
+[1]: http://www.tighturl.com/ "TightUrl"
