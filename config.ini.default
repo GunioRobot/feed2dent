@@ -3,6 +3,7 @@ dat_path: feed.dat
 
 [feeds]
 somefeedname: http://some/feed/url
+otherfeedname: http://other/feed/url
 
 [identica]
 apiurl: http://identi.ca/api/statuses/update.json

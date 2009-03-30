@@ -31,12 +31,12 @@ simplejson if you are using 2.5 or earlier.
 
 ## Example Usage
 
-The following fetches the feed, saves state, and posts any new items to
+The following fetches all feeds, saves state, and posts any new items to
 identica.
 
     ./feed2dent feed 
 
-The following runs with debug info output, fetches the feed, saves state, 
+The following runs with debug info output, fetches all feeds, saves state, 
 but does not post to identica.  Useful for debugging issues.
 
     ./feed2dent -vv feed -f
