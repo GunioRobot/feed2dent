@@ -11,7 +11,7 @@ import pickle
 import logging
 import feedparser
 import f2dlibs
-from f2dlibs import Storage, cmdln, identica, tighturl
+from f2dlibs import Storage, cmdln, identica, tighturl, FeedContainer
 from ConfigParser import RawConfigParser
 from optparse import OptionParser, OptionGroup
 
@@ -92,24 +92,30 @@ class CommandParser(cmdln.Cmdln):
                     feedit(feed=x, nodent=opts.nodent)
         else:
             # remove feeds no longer in config
-            for x in fc.feeds.keys():
-                if x not in config.feeds.keys():
-                    logger.info('feed "%s" no longer in config. deleting.', x)
-                    del fc.feeds[x]
+            if fc.loaded == True:
+                for x in fc.feeds.keys():
+                    if x not in config.feeds.keys():
+                        self.logger.info('feed "%s" no longer in config.', x)
+                        self.logger.info('deleting feed "%s".', x)
+                        del fc.feeds[x]
             # operate on feeds
             for x in config.feeds.keys():
-                fc.feeds[x] = feedit(x, fc.feeds[x], nodent=opts.nodent)
+                if x in fc.feeds:
+                    fc.feeds[x] = feedit(x, fobj=fc.feeds[x], nodent=opts.nodent)
+                else:
+                    fc.feeds[x] = feedit(x, fobj=None, nodent=opts.nodent)
             fc.save()
 
 
 ###
 ### helper function defs
 def loadfc():
+    logger = logging.getLogger('loadfc')
+    fc = FeedContainer(config.general.dat_path)
     if os.path.isfile(config.general.dat_path):
         try:
             logger.debug('feed.dat found. trying to read.. %s', 
                          config.general.dat_path)
-            fc = FeedContainer(config.general.dat_file)
             fc.load()
             logger.debug('feed.dat loaded')
             return fc
@@ -119,19 +125,20 @@ def loadfc():
             sys.exit(1)
     else:
         logger.debug('no feed.dat found at %s.', config.general.dat_path)
-        sys.exit(1)
+        logger.debug('trying to create new dat file')
+        return fc
 
 def feedit(feedname, fobj=None, nodent=False):
     """Main entry point for rss2dent"""
     logger = logging.getLogger('main')
     # get rss feed
     try:
-        logger.debug('fetching feed url')
+        logger.debug('fetching feed "%s"', feedname)
         if fobj:
             logger.debug('conditional fetch: modified date')
             newfobj = f2dlibs.timeout(10, feedparser.parse, 
                                       config.feeds[feedname], 
-                                      modified=feedobj.modified)
+                                      modified=fobj.modified)
         else:
             newfobj = f2dlibs.timeout(10, feedparser.parse, 
                                       config.feeds[feedname])
@@ -139,13 +146,13 @@ def feedit(feedname, fobj=None, nodent=False):
         logger.critical('timed out reading feed "%s". giving up', feedname)
         return fobj
 
-    if not fdata:
+    if not newfobj:
         logger.critical('feed "%s" was empty!', feedname)
         return fobj
     else:
         logger.debug('feed retrieved')
 
-    if fdata.status == 304:
+    if newfobj.status == 304:
         logger.info('no new feed data since last fetch')
         # return old object, preserving older last modified stamp
         return fobj

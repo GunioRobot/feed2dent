@@ -58,10 +58,12 @@ class FeedContainer(object):
     def __init__(self, filename):
         self.feeds = Storage()
         self.filename = filename
+        self.loaded = False
 
     def load(self):
         """Load datfile as a feedcontainer"""
         self.feeds = pickle.load(open(self.filename, 'rb'))
+        self.loaded = True
 
     def save(self):
         pickle.dump(self.feeds, open(self.filename, 'wb'))
