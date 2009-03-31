@@ -36,14 +36,17 @@ The config.ini file can use templates for posting to identi.ca. The template str
 
     [feeds]
     somename: http://some/feed/url
-    somename_tpl: {{ url | shortenurl }} {{ title }}
+
+    [templates]
+    somename: {{ url | shortenurl }} {{ title }}
 
 Right now, only url and title variables are exported to the template system.
 *shortenurl* is a filter, that accepts a url as input, and performs a
 [tighturl][1] shortening upon it. If you want a longer url, then leave that
 off.
 
-This can be useful if, for instance, you want your posts from one rss to go to a certain identi.ca *group*. In such a case, your template could look like:
+This can be useful if, for instance, you want your posts from one rss to go to
+a certain identi.ca *group*. In such a case, your template could look like:
 
     !groupname {{ url | shortenurl }} {{ title }}
 
