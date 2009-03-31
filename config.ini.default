@@ -3,10 +3,11 @@ dat_path: feed.dat
 
 [feeds]
 somefeedname: http://some/feed/url
-somefeedname_tpl: {{ url | shortenurl }} {{ title  }}
-
 otherfeedname: http://other/feed/url
-otherfeedname_tpl: !groupname {{url|shortenurl}} {{title}}
+
+[templates]
+somefeedname: {{ url | shortenurl }} {{ title  }}
+otherfeedname: !groupname {{url|shortenurl}} {{title}}
 
 [identica]
 apiurl: http://identi.ca/api/statuses/update.json

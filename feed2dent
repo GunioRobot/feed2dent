@@ -177,9 +177,8 @@ def feedit(feedname, fobj=None, nodent=False):
                     if entry.id == oldentry.id:
                         match = True
             if match == False:
-                tplname = '%s_tpl' % feedname
-                if tplname in config.feeds:
-                    tplstring = config.feeds[tplname]
+                if feedname in config.templates:
+                    tplstring = config.templates[feedname]
                 else:
                     tplstring = '{{ url | shortenurl }} {{ title }}'
                 # new entry. do dent
