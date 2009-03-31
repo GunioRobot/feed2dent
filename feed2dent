@@ -17,6 +17,7 @@ from ConfigParser import RawConfigParser
 from optparse import OptionParser, OptionGroup
 
 LOG_LEVELS = (logging.WARNING, logging.INFO, logging.DEBUG)
+DEFAULT_TPL = '{{ url | shortenurl }} {{ title }}'
 
 ###
 ### class defs
@@ -75,6 +76,11 @@ class CommandParser(cmdln.Cmdln):
             counter += 1
             print '[%2d] name: %s' % (counter, x)
             print '     url:  %s' % config.feeds[x]
+            if x in config.templates:
+                print '     tpl:  %s' % config.templates[x]
+            else:
+                print '     tpl:  %s' % DEFAULT_TPL
+
 
     @cmdln.option("-f", "--fetch-only", action="store_true", dest="nodent",
         default=False, help="Fetch feeds but do post a dent.")
@@ -180,7 +186,7 @@ def feedit(feedname, fobj=None, nodent=False):
                 if feedname in config.templates:
                     tplstring = config.templates[feedname]
                 else:
-                    tplstring = '{{ url | shortenurl }} {{ title }}'
+                    tplstring = DEFAULT_TPL
                 # new entry. do dent
                 template = jenv.from_string(tplstring)
                 text = template.render(url=entry.link, title=entry.title)
