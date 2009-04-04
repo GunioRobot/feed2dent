@@ -12,21 +12,6 @@ import urllib2
 import logging
 
 ###
-### conditional imports
-try: import json
-except ImportError:
-    try:
-        import simplejson as json
-    except ImportError:
-        print "Could not import json or simplejson module"
-        sys.exit(1)
-
-try: import lxml
-except ImportError:
-    print "Could not import lxml"
-    sys.exit(1)
-
-###
 ### class defs
 class Storage(dict):
     """Just a simple storage class"""

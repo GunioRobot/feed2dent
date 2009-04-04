@@ -12,7 +12,16 @@ import sys
 import logging
 import urllib
 import urllib2
-from . import json
+
+###
+### conditional imports
+try: import json
+except ImportError:
+    try:
+        import simplejson as json
+    except ImportError:
+        print "Could not import json or simplejson module"
+        sys.exit(1)
 
 ###
 ### method defs

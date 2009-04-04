@@ -14,8 +14,14 @@ import re
 import urllib
 import urllib2
 import logging
-import lxml
 from jinja2 import Markup
+
+### 
+### conditional imports
+try: import lxml
+except ImportError:
+    print "Could not import lxml"
+    sys.exit(1)
 
 ###
 ### method defs
