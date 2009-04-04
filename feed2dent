@@ -7,6 +7,7 @@ converted to a 'short url', and the title is chopped at 140 characters.
 
 import os
 import sys
+import time
 import logging
 import feedparser
 from f2dlibs import Storage, TimeoutError, FeedContainer, NullLoggingHandler
@@ -65,15 +66,22 @@ class CommandParser(cmdln.Cmdln):
         else:
             identica.dent(config.identica, text)
 
-    def do_clist(self, subcmd, opts):
+    def do_list(self, subcmd, opts, *feedname):
         """list feeds from the config file
 
         ${cmd_usage}
+        If no FEEDNAME(s) provided, run for all feeds.
+
         ${cmd_option_list}
         """
         counter = 0
-        feeds = config.feeds.keys()
+        if len(feedname) > 0:
+            feeds = [x for x in feedname if x in config.feeds.keys()]
+        else:
+            feeds = config.feeds.keys()
         feeds.sort()
+        fc = FeedContainer(config.general.dat_path)
+        fc.load()
         for x in feeds:
             counter += 1
             print '[%2d] name: %s' % (counter, x)
@@ -82,26 +90,10 @@ class CommandParser(cmdln.Cmdln):
                 print '     tpl:  %s' % config.templates[x]
             else:
                 print '     tpl:  %s' % config.templates['default']
-
-    def do_dlist(self, subcmd, opts):
-        """list feeds from the dat file
-
-        ${cmd_usage}
-        ${cmd_option_list}
-        """
-        fc = FeedContainer(config.general.dat_path)
-        fc.load()
-        counter = 0
-        feeds = fc.feeds.keys()
-        feeds.sort()
-        for x in feeds:
-            counter += 1
-            print '[%2d] name: %s' % (counter, x)
-            print '     url:  %s' % fc.feeds[x].href
-            if x in config.templates:
-                print '     tpl:  %s' % config.templates[x]
-            else:
-                print '     tpl:  %s' % config.templates['default']
+            if fc.loaded == True and x in fc.feeds:
+                print '     feed-type: %s' % fc.feeds[x].version
+                print '     last-update: %s' % \
+                    time.strftime('%Y-%m-%d %H:%M', fc.feeds[x].updated)
 
     @cmdln.option("-f", "--fetch-only", action="store_true", dest="nodent",
         default=False, help="Fetch feeds but do post a dent.")
