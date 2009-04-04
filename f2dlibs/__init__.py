@@ -5,11 +5,13 @@ f2dlibs library
 ###
 ### imports
 import sys
+import os
 import re
 import pickle
 import urllib
 import urllib2
 import logging
+import cmdln
 
 ###
 ### class defs
@@ -46,9 +48,12 @@ class FeedContainer(object):
         self.loaded = False
 
     def load(self):
-        """Load datfile as a feedcontainer"""
-        self.feeds = pickle.load(open(self.filename, 'rb'))
-        self.loaded = True
+        """Load datfile as a feedcontainer if it exists"""
+        if os.path.exists(self.filename):
+            file = open(self.filename, 'rb')
+            self.feeds = pickle.load(file)
+            file.close()
+            self.loaded = True
 
     def save(self):
         pickle.dump(self.feeds, open(self.filename, 'wb'))
