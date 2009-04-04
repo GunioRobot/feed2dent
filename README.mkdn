@@ -32,13 +32,19 @@ simplejson if you are using python-2.5 or earlier.
    file can be saved).
 
 ## Template Syntax
-The config.ini file can use templates for posting to identi.ca. The template string convention is as follows.
+The config.ini file can use templates for posting to identi.ca. The template
+string convention is as follows.
 
     [feeds]
     somename: http://some/feed/url
+    otherfeed: http://other/feed/url
 
     [templates]
+    default: {{ url | shortenurl }} {{ title }}
     somename: {{ url | shortenurl }} {{ title }}
+
+If a template name matches a feed name, that templat gets used. If there are no
+matches, then the default template is used.
 
 Right now, only url and title variables are exported to the template system.
 *shortenurl* is a filter, that accepts a url as input, and performs a
@@ -49,10 +55,6 @@ This can be useful if, for instance, you want your posts from one rss to go to
 a certain identi.ca *group*. In such a case, your template could look like:
 
     !groupname {{ url | shortenurl }} {{ title }}
-
-If no template string is defined, the default is:
-    
-    {{ url | shortenurl }} {{ title }}
 
 ## Example Usage
 
