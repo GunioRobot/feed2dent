@@ -7,21 +7,15 @@ converted to a 'short url', and the title is chopped at 140 characters.
 
 import os
 import sys
-import pickle
 import logging
 import feedparser
-import f2dlibs
-from f2dlibs import Storage, cmdln, identica, FeedContainer, jfilters
-from f2dlibs import NullLoggingHandler
+from f2dlibs import Storage, TimeoutError, FeedContainer, NullLoggingHandler
+from f2dlibs import identica, jfilters, timeout, cmdln
 from jinja2 import Environment
 from ConfigParser import RawConfigParser
-from optparse import OptionParser, OptionGroup
-
-LOG_LEVELS = (logging.WARNING, logging.INFO, logging.DEBUG)
-DEFAULT_TPL = '{{ url | shortenurl }} {{ title }}'
 
 ###
-### class defs
+### classes
 class CommandParser(cmdln.Cmdln):
     name = "feed2dent"
     version = "0.2"
@@ -40,13 +34,15 @@ class CommandParser(cmdln.Cmdln):
         return parser
 
     def precmd(self, arg):
-        if self.options.verbosity > len(LOG_LEVELS) - 1:
-            verbosity = len(LOG_LEVELS) - 1
+        if self.options.verbosity > 2:
+            verbosity = logging.DEBUG
+        elif self.options.verbosity == 1:
+            verbosity = logging.INFO
         else:
-            verbosity = self.options.verbosity
+            verbosity = logging.WARNING
         # reconfigure the default logger level
         # this propagates down to children
-        logging.getLogger().setLevel(LOG_LEVELS[verbosity])
+        logging.getLogger().setLevel(verbosity)
         return arg
 
     @cmdln.option("-f", "--fetch-only", action="store_true", dest="nodent",
@@ -69,23 +65,43 @@ class CommandParser(cmdln.Cmdln):
         else:
             identica.dent(config.identica, text)
 
-    def do_list(self, subcmd, opts):
+    def do_clist(self, subcmd, opts):
         """list feeds from the config file
 
         ${cmd_usage}
         ${cmd_option_list}
         """
-        self.logger.debug('hit list method')
         counter = 0
-        for x in config.feeds:
+        feeds = config.feeds.keys()
+        feeds.sort()
+        for x in feeds:
             counter += 1
             print '[%2d] name: %s' % (counter, x)
             print '     url:  %s' % config.feeds[x]
-            if config.has_key('templates') and x in config.templates:
+            if x in config.templates:
                 print '     tpl:  %s' % config.templates[x]
             else:
-                print '     tpl:  %s' % DEFAULT_TPL
+                print '     tpl:  %s' % config.templates['default']
 
+    def do_dlist(self, subcmd, opts):
+        """list feeds from the dat file
+
+        ${cmd_usage}
+        ${cmd_option_list}
+        """
+        fc = FeedContainer(config.general.dat_path)
+        fc.load()
+        counter = 0
+        feeds = fc.feeds.keys()
+        feeds.sort()
+        for x in feeds:
+            counter += 1
+            print '[%2d] name: %s' % (counter, x)
+            print '     url:  %s' % fc.feeds[x].href
+            if x in config.templates:
+                print '     tpl:  %s' % config.templates[x]
+            else:
+                print '     tpl:  %s' % config.templates['default']
 
     @cmdln.option("-f", "--fetch-only", action="store_true", dest="nodent",
         default=False, help="Fetch feeds but do post a dent.")
@@ -97,7 +113,8 @@ class CommandParser(cmdln.Cmdln):
 
         ${cmd_option_list}
         """
-        fc = loadfc()
+        fc = FeedContainer(config.general.dat_path)
+        fc.load()
         if len(feedname) > 0:
             for x in feedname:
                 if x not in config.feeds.keys():
@@ -123,26 +140,7 @@ class CommandParser(cmdln.Cmdln):
 
 ###
 ### helper function defs
-def loadfc():
-    logger = logging.getLogger('loadfc')
-    fc = FeedContainer(config.general.dat_path)
-    if os.path.isfile(config.general.dat_path):
-        try:
-            logger.debug('feed.dat found. trying to read.. %s', 
-                         config.general.dat_path)
-            fc.load()
-            logger.debug('feed.dat loaded')
-            return fc
-        except:
-            logger.error('could not read feed.dat, even though it exists.')
-            logger.exception('exception:')
-            sys.exit(1)
-    else:
-        logger.debug('no feed.dat found at %s.', config.general.dat_path)
-        logger.debug('trying to create new dat file')
-        return fc
-
-def feedit(feedname, env, fobj=None, nodent=False):
+def feedit(feedname, fobj=None, nodent=False):
     """Main entry point for rss2dent"""
     logger = logging.getLogger('main')
     jenv = Environment()
@@ -152,13 +150,13 @@ def feedit(feedname, env, fobj=None, nodent=False):
         logger.debug('fetching feed "%s"', feedname)
         if fobj:
             logger.debug('conditional fetch: modified date')
-            newfobj = f2dlibs.timeout(10, feedparser.parse, 
-                                      config.feeds[feedname], 
-                                      modified=fobj.modified)
+            newfobj = timeout(10, feedparser.parse, 
+                              config.feeds[feedname], 
+                              modified=fobj.modified)
         else:
-            newfobj = f2dlibs.timeout(10, feedparser.parse, 
-                                      config.feeds[feedname])
-    except f2dlibs.TimeoutError:
+            newfobj = timeout(10, feedparser.parse, 
+                              config.feeds[feedname])
+    except TimeoutError:
         logger.critical('timed out reading feed "%s". giving up', feedname)
         return fobj
 
@@ -193,7 +191,7 @@ def feedit(feedname, env, fobj=None, nodent=False):
                 if feedname in config.templates:
                     tplstring = config.templates[feedname]
                 else:
-                    tplstring = DEFAULT_TPL
+                    tplstring = config.templates['default']
                 # new entry. do dent
                 template = jenv.from_string(tplstring)
                 text = template.render(url=entry.link, title=entry.title)
