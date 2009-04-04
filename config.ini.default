@@ -6,6 +6,7 @@ somefeedname: http://some/feed/url
 otherfeedname: http://other/feed/url
 
 [templates]
+default: {{ url | shortenurl }} {{ title  }}
 somefeedname: {{ url | shortenurl }} {{ title  }}
 otherfeedname: !groupname {{url|shortenurl}} {{title}}
 
