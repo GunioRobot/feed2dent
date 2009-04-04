@@ -41,8 +41,6 @@ class CommandParser(cmdln.Cmdln):
             datefmt='%Y-%m-%d %H:%M',
             level=LOG_LEVELS[verbosity])
         self.logger = logging.getLogger('cmdparser')
-        self.jenv = Environment()
-        self.jenv.filters['shortenurl'] = jfilters.shortenurl
         return arg
 
     @cmdln.option("-f", "--fetch-only", action="store_true", dest="nodent",
@@ -98,7 +96,7 @@ class CommandParser(cmdln.Cmdln):
                 if x not in config.feeds.keys():
                     print 'feed name "%s" not in config.' % x
                 else:
-                    feedit(x, self.jenv, fobj=None, nodent=opts.nodent)
+                    feedit(x, fobj=None, nodent=opts.nodent)
         else:
             # remove feeds no longer in config
             if fc.loaded == True:
@@ -110,9 +108,9 @@ class CommandParser(cmdln.Cmdln):
             # operate on feeds
             for x in config.feeds.keys():
                 if x in fc.feeds:
-                    fc.feeds[x] = feedit(x, self.jenv, fobj=fc.feeds[x], nodent=opts.nodent)
+                    fc.feeds[x] = feedit(x, fobj=fc.feeds[x], nodent=opts.nodent)
                 else:
-                    fc.feeds[x] = feedit(x, self.jenv, fobj=None, nodent=opts.nodent)
+                    fc.feeds[x] = feedit(x, fobj=None, nodent=opts.nodent)
             fc.save()
 
 
@@ -140,6 +138,8 @@ def loadfc():
 def feedit(feedname, env, fobj=None, nodent=False):
     """Main entry point for rss2dent"""
     logger = logging.getLogger('main')
+    jenv = Environment()
+    jenv.filters['shortenurl'] = jfilters.shortenurl
     # get rss feed
     try:
         logger.debug('fetching feed "%s"', feedname)
@@ -188,7 +188,7 @@ def feedit(feedname, env, fobj=None, nodent=False):
                 else:
                     tplstring = DEFAULT_TPL
                 # new entry. do dent
-                template = env.from_string(tplstring)
+                template = jenv.from_string(tplstring)
                 text = template.render(url=entry.link, title=entry.title)
                 # do dent
                 identica.dent(config.identica, text)
