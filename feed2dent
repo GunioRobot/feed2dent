@@ -74,7 +74,7 @@ class CommandParser(cmdln.Cmdln):
             counter += 1
             print '[%2d] name: %s' % (counter, x)
             print '     url:  %s' % config.feeds[x]
-            if x in config.templates:
+            if config.has_key('templates') and x in config.templates:
                 print '     tpl:  %s' % config.templates[x]
             else:
                 print '     tpl:  %s' % DEFAULT_TPL
