@@ -12,6 +12,7 @@ import logging
 import feedparser
 import f2dlibs
 from f2dlibs import Storage, cmdln, identica, FeedContainer, jfilters
+from f2dlibs import NullLoggingHandler
 from jinja2 import Environment
 from ConfigParser import RawConfigParser
 from optparse import OptionParser, OptionGroup
@@ -25,6 +26,13 @@ class CommandParser(cmdln.Cmdln):
     name = "feed2dent"
     version = "0.2"
 
+    def __init__(self, *args, **kwargs):
+        cmdln.Cmdln.__init__(self, *args, **kwargs)
+        # ensure that if no logger is created, we don't puke
+        # just appends, so it won't overwrite existing
+        self.logger = logging.getLogger('cmdparser')
+        self.logger.addHandler(NullLoggingHandler())
+
     def get_optparser(self):
         parser = cmdln.Cmdln.get_optparser(self)
         parser.add_option("-v", action="count", dest="verbosity", default=0,
@@ -36,11 +44,9 @@ class CommandParser(cmdln.Cmdln):
             verbosity = len(LOG_LEVELS) - 1
         else:
             verbosity = self.options.verbosity
-        logging.basicConfig(
-            format="%(asctime)s : %(levelname)-8s %(message)s",
-            datefmt='%Y-%m-%d %H:%M',
-            level=LOG_LEVELS[verbosity])
-        self.logger = logging.getLogger('cmdparser')
+        # reconfigure the default logger level
+        # this propagates down to children
+        logging.getLogger().setLevel(LOG_LEVELS[verbosity])
         return arg
 
     @cmdln.option("-f", "--fetch-only", action="store_true", dest="nodent",
@@ -59,7 +65,7 @@ class CommandParser(cmdln.Cmdln):
             return 1
         self.logger.debug('processing simple dent: "%s"', text)
         if opts.nodent == True:
-            logger.debug('no-dent set. not sending...')
+            self.logger.debug('no-dent set. not sending...')
         else:
             identica.dent(config.identica, text)
 
@@ -69,6 +75,7 @@ class CommandParser(cmdln.Cmdln):
         ${cmd_usage}
         ${cmd_option_list}
         """
+        self.logger.debug('hit list method')
         counter = 0
         for x in config.feeds:
             counter += 1
@@ -200,19 +207,25 @@ def feedit(feedname, env, fobj=None, nodent=False):
         # return new obj
         return newfobj
 
-###
-### load config vars
-cfgp = RawConfigParser()
-cfgp.read('config.ini')
-config = Storage()
-for section in cfgp.sections():
-    config[section] = Storage()
-    for left,right in cfgp.items(section):
-        config[section][left] = right
 
 ###
 ### main
 if __name__ == '__main__':
+    # load config vars
+    if not os.path.exists('config.ini'):
+        sys.exit('no config file found. exiting.')
+    cfgp = RawConfigParser()
+    cfgp.read('config.ini')
+    config = Storage()
+    for section in cfgp.sections():
+        config[section] = Storage()
+        for left,right in cfgp.items(section):
+            config[section][left] = right
+    # setup logging -- we will set the log level later
+    logging.basicConfig(
+        format="%(asctime)s : %(levelname)-8s %(message)s",
+        datefmt='%Y-%m-%d %H:%M')
+    # start command parser
     feed2dent = CommandParser()
     ret = feed2dent.main()
     sys.exit(ret)
