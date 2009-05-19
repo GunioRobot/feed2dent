@@ -140,7 +140,7 @@ def feedit(feedname, fobj=None, nodent=False):
     # get rss feed
     try:
         logger.debug('fetching feed "%s"', feedname)
-        if fobj:
+        if fobj and hasattr(fobj,'modified'):
             logger.debug('conditional fetch: modified date')
             newfobj = timeout(10, feedparser.parse, 
                               config.feeds[feedname], 
