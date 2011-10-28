@@ -61,9 +61,9 @@ a certain identi.ca *group*. In such a case, your template could look like:
 The following fetches all feeds, saves state, and posts any new items to
 identica.
 
-    ./feed2dent feed 
+    ./feed2dent feed
 
-The following runs with debug info output, fetches all feeds, saves state, 
+The following runs with debug info output, fetches all feeds, saves state,
 but does not post to identica.  Useful for debugging issues.
 
     ./feed2dent -vv feed -f

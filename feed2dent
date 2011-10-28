@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-rss2dent is an RSS to identi.ca agent. It pulls feeds from a feed url, and 
+rss2dent is an RSS to identi.ca agent. It pulls feeds from a feed url, and
 posts the result to identi.ca. The link to the original feed article is
 converted to a 'short url', and the title is chopped at 140 characters.
 """
@@ -51,7 +51,7 @@ class CommandParser(cmdln.Cmdln):
     def do_dent(self, subcmd, opts, *content):
         """Send the specified text directly to identi.ca, as a simple dent.
 
-        usage: 
+        usage:
             dent CONTENT...
 
         ${cmd_option_list}
@@ -142,11 +142,11 @@ def feedit(feedname, fobj=None, nodent=False):
         logger.debug('fetching feed "%s"', feedname)
         if fobj and hasattr(fobj,'modified'):
             logger.debug('conditional fetch: modified date')
-            newfobj = timeout(10, feedparser.parse, 
-                              config.feeds[feedname], 
+            newfobj = timeout(10, feedparser.parse,
+                              config.feeds[feedname],
                               modified=fobj.modified)
         else:
-            newfobj = timeout(10, feedparser.parse, 
+            newfobj = timeout(10, feedparser.parse,
                               config.feeds[feedname])
     except TimeoutError:
         logger.critical('timed out reading feed "%s". giving up', feedname)
